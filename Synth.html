@@ -1,0 +1,274 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Prikol</title>
+<style type="text/css">
+form{
+padding:0;
+margin:0;
+user-select:none;
+}
+input[type="range"]{
+appearance:none;
+border:1px solid black;
+}
+input[type="range"]::-webkit-slider-thumb{
+cursor:pointer;
+appearance:none;
+border:0.5px solid black;
+background:black;
+width:30px;
+height:15px;	
+box-shadow:-2px 0px 2px 0px white inset,2px 0px 2px 0px white inset;
+}
+.synthBox{
+background:orange;
+border: 0.25px solid black;
+width:340px;
+height:415px;
+box-shadow:2px 2px 4px 0px black;
+user-select:none;
+}
+.infoBox{
+position:absolute;
+padding-left:5px;
+border:0.25px solid black;
+width:450px;
+height:50px;
+box-shadow:2px 2px 4px 0px black;
+top:68px;
+left:360px;
+user-select:none;
+}
+</style>
+</head>
+<body>
+<h1 align="center">Синтезатор</h1>
+<div class="synthBox">
+<table border="0">
+<form name="forma">
+<tr>
+<td>Общая громкость</td>
+<td><input type="range" id="vol" min="0" max="1", step="0.01"></td>
+</tr>
+<tr>
+<td><b>Генератор<b></td>
+</tr>
+<tr>
+<td>Форма волны</td>
+<td><input type="range" id="wave" min="0" max="3" step="1" value="0" onchange="g1.value=waves[wave.value]"><td>
+<td><output name="g1">sine</output></td>
+</tr>
+<td>Расстройка</td>
+<td><input type="range" id="detune" min="0" max="100" step="1" value="0"><td>
+</tr>
+<tr>
+<td><b>Огибающая<b></td>
+</tr>
+<tr>
+<td>Атака</td>
+<td><input type="range" id="attack" min="0" max="1" step="0.01" value="0"></td>
+</tr>
+<tr>
+<td>Спад</td>
+<td><input type="range" id="decay" min="0" max="1" step="0.01" value="0"></td>
+</tr>
+<tr>
+<td>Поддержка</td>
+<td><input type="range" id="sustain" min="0" max="1" step="0.01" value="1"></td>
+</tr>
+<tr>
+<td>Затухание(wip)</td>
+<td><input type="range" id="release" min="0" max="1" step="0.01" value="0"></td>
+</tr>
+<tr>
+<td><b>Фильтр<b></td>
+</tr>
+<tr>
+<td>Частота среза</td>
+<td><input type="range" id="fFreq" min="0" max="10000" step="0.01" value="10000"></td>
+</tr>
+<tr>
+<td>Резонанс</td>
+<td><input type="range" id="fRes" min="0.0001" max="50" step="0.01" value="0.0001"></td>
+</tr>
+<tr>
+<td><b>Задержка<b></td>
+</tr>
+<tr>
+<td>Время задержки</td>
+<td><input type="range" id="dTime1" min="0" max="1" step="0.01" value="0"></td>
+</tr>
+<tr>
+<td>Громкость</td>
+<td><input type="range" id="dvol1" min="0" max="1" step="0.01" value="0"></td>
+</tr>
+<tr>
+<td>Обратная связь</td>
+<td><input type="range" id="dfbk1" min="0" max="1" step="0.01" value="0"></td>
+</tr>
+<tr>
+<td></td>
+<td><input type="button" id="-oct" value="-октава" onclick="octMinusShift();">
+<input type="button" id="+oct" value="+октава" onclick="octPlusShift();"></td>
+</tr>
+</form>
+</table>
+</div>
+<div class="infoBox">Для игры на синтезаторе используйте Z S X D C V G B H N J M ,<br>Q 2 W 3 E R 5 T 6 Y 7 U I</div>
+<script language="JavaScript">
+let octaveShift=0;
+let noteFreq=[
+130.82,
+138.59,
+146.83,
+155.57,
+164.82,
+174.62,
+185.00,
+196.00,
+207.65,
+220.00,
+233.08,
+246.94,
+261.64,
+130.82*2,
+138.59*2,
+146.83*2,
+155.57*2,
+164.82*2,
+174.62*2,
+185.00*2,
+196.00*2,
+207.65*2,
+220.00*2,
+233.08*2,
+246.94*2,
+261.64*2
+];
+let keys=[
+"KeyZ",
+"KeyS",
+"KeyX",
+"KeyD",
+"KeyC",
+"KeyV",
+"KeyG",
+"KeyB",
+"KeyH",
+"KeyN",
+"KeyJ",
+"KeyM",
+"Comma",
+"KeyQ",
+"Digit2",
+"KeyW",
+"Digit3",
+"KeyE",
+"KeyR",
+"Digit5",
+"KeyT",
+"Digit6",
+"KeyY",
+"Digit7",
+"KeyU",
+"KeyI"
+];
+let waves=[
+"sine",
+"triangle",
+"square",
+"sawtooth",
+];
+/*function checkKey(k){
+let n=12
+for(i=0;i<=n;i++)
+if(keys[i]==k){
+break;
+return i;
+}
+else if(n>=12)return -1;
+}*/
+const actx=new (AudioContext || webkitAudioContext)();
+const oscillators1={},oscillators2={};
+const pressedKeys={};
+let vca1={};
+function octMinusShift(){
+if(octaveShift>=0){
+octaveShift--;
+for(i=0;i<noteFreq.length;i++)
+noteFreq[i]/=2;
+}
+else return;
+}
+function octPlusShift(){
+if(octaveShift<=1){
+octaveShift++;
+for(i=0;i<noteFreq.length;i++)
+noteFreq[i]*=2;
+}
+else return;
+}
+function noteOn(key){
+if(key.repeat==false){
+vca1=actx.createGain();
+vol1=actx.createGain();
+delayVol1=actx.createGain();
+delayFbk1=actx.createGain();
+vcf1=actx.createBiquadFilter();
+delay1=actx.createDelay(5);
+osc1=actx.createOscillator();
+osc2=actx.createOscillator();
+oscillators1[key.code]=osc1;
+oscillators2[key.code]=osc2;
+console.log(oscillators1);
+waveindex=Number(document.forma.wave.value);
+osc1.type=waves[waveindex];
+osc2.type=waves[waveindex];
+vca1.gain.value=0;
+vol1.gain.value=document.forma.vol.value;
+delayVol1.gain.value=document.forma.dvol1.value;
+delayFbk1.gain.value=document.forma.dfbk1.value;
+delay1.delayTime.value=document.forma.dTime1.value;
+vcf1.type="lowpass";
+vcf1.frequency.value=document.forma.fFreq.value;
+vcf1.Q.value=document.forma.fRes.value;
+osc1.connect(vca1);
+osc2.connect(vca1);
+vca1.connect(vcf1);
+vcf1.connect(vol1);
+vcf1.connect(delay1);
+delay1.connect(delayVol1);
+delayVol1.connect(vol1);
+delayVol1.connect(delayFbk1);
+delayFbk1.connect(delay1);
+vol1.connect(actx.destination);
+vca1.gain.linearRampToValueAtTime(document.forma.vol.value,actx.currentTime + Number(document.forma.attack.value));
+vca1.gain.linearRampToValueAtTime(Number(document.forma.sustain.value),actx.currentTime + Number(document.forma.decay.value));
+vcf1.frequency.linearRampToValueAtTime(document.forma.fFreq.value,actx.currentTime + Number(document.forma.attack.value));
+vcf1.frequency.linearRampToValueAtTime(Number(document.forma.fFreq.value),actx.currentTime + Number(document.forma.decay.value));
+for(i=0;i<=25;i++)
+if(keys[i]==key.code){
+osc1.frequency.value=noteFreq[i];
+osc2.frequency.value=noteFreq[i];
+osc2.detune.value=document.forma.detune.value;
+osc1.start();
+osc2.start();
+break;
+}
+}
+else return;
+}
+function noteOff(key){
+//vca1.gain.cancelScheduledValues(actx.currentTime);
+//vca1.gain.linearRampToValueAtTime(0.001,actx.currentTime + Number(document.forma.release.value));
+const osc1=oscillators1[key.code],osc2=oscillators2[key.code];
+osc1.stop();
+osc2.stop();
+delete oscillators1[key.code],oscillators2[key.code];
+}
+document.addEventListener("keydown",noteOn);
+document.addEventListener("keyup",noteOff);
+</script>
+</body>
+</html>
